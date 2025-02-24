@@ -1,5 +1,6 @@
 package com.send.mail;
 
+import com.send.mail.helper.Message;
 import com.send.mail.services.EmailService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.List;
 
 @SpringBootTest
 public class EmailSenderTest {
@@ -52,5 +54,18 @@ public class EmailSenderTest {
         emailService.sendEmailWithFile("kumarryan68@gmail.com","email sent with attachment","Hi aryan ",is);
     }
 
+    @Test
+    void receivingEmailTest()
+    {
+        List<Message> inboxMessages = emailService.getInboxMessages();
+        inboxMessages.forEach(item->{
+            System.out.println(item.getSubjects());
+            System.out.println(item.getContent());
+            System.out.println(item.getFiles());
+            System.out.println("----------");
+        });
+
+
+    }
 
 }

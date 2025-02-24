@@ -1,7 +1,9 @@
 package com.send.mail.services.serviceImpl;
 
+import ch.qos.logback.core.net.SyslogOutputStream;
+import com.send.mail.helper.Message;
 import com.send.mail.services.EmailService;
-import jakarta.mail.MessagingException;
+import jakarta.mail.*;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +19,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
 @Service
 public class EmailServiceImpl implements EmailService {
@@ -116,5 +121,102 @@ public class EmailServiceImpl implements EmailService {
             throw new RuntimeException(e);
         }
 
+    }
+
+    @Value("${mail.store.protocol}")
+    String protocol;
+    @Value("${mail.imaps.host}")
+    String host;
+    @Value("${mail.imaps.port}")
+    String port;
+    @Value("${spring.mail.username}")
+    String username;
+    @Value("${spring.mail.password}")
+    String password;
+
+    @Override
+    public List<Message> getInboxMessages() {
+
+        // code to receive email: All emails
+        Properties configurations = new Properties();
+        configurations.setProperty("mail.store.protocol",protocol);
+        configurations.setProperty("mail.imaps.host",host);
+        configurations.setProperty("mail.imaps.port",port);
+        Session session = Session.getDefaultInstance(configurations);
+        try {
+            Store store = session.getStore();
+            store.connect(username,password);
+            //store.getFolder("INBOX"); -- for inbox
+            //store.getFolder("[Gmail]/Starred"); -- for starred
+            //store.getFolder("[Gmail]/Drafts"); -- for drafts
+            Folder inbox = store.getFolder("[Gmail]/Sent Mail");
+            inbox.open(Folder.READ_ONLY);
+            jakarta.mail.Message[] messages = inbox.getMessages();
+
+            List<Message> list= new ArrayList<>();
+
+            for(jakarta.mail.Message message:messages)
+            {
+                String content=getContentFromEmailMessage(message);
+                List<String> files=getFilesFromEmailMessage(message);
+
+                Message m=new Message();
+                m.setContent(content);
+                m.setFiles(files);
+                m.setSubjects(message.getSubject());
+                list.add(m);
+            }
+
+        } catch (NoSuchProviderException e) {
+            throw new RuntimeException(e);
+        } catch (MessagingException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return List.of();
+    }
+
+    private List<String> getFilesFromEmailMessage(jakarta.mail.Message message) throws MessagingException, IOException {
+        List<String> files=new ArrayList<>();
+        if(message.isMimeType("multipart/*"))
+        {
+            Multipart part = (Multipart) message.getContent();
+            for(int i=0;i< part.getCount();i++)
+            {
+                BodyPart bodyPart = part.getBodyPart(i);
+
+                if(Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()))
+                {
+                    InputStream inputStream = bodyPart.getInputStream();
+                    File file=new File("src/main/resources/email/"+bodyPart.getFileName());
+                    Files.copy(inputStream,file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    files.add(file.getAbsolutePath());
+                }
+            }
+        }
+        return files;
+
+    }
+
+    private String getContentFromEmailMessage(jakarta.mail.Message message) throws MessagingException, IOException {
+        if(message.isMimeType("text/plain")|| message.isMimeType("text/html"))
+        {
+            String content = (String) message.getContent();
+            return content;
+        } else if (message.isMimeType("multipart/*")) {
+            Multipart part = (Multipart) message.getContent();
+            for(int i=0;i< part.getCount();i++)
+            {
+                BodyPart bodyPart = part.getBodyPart(i);
+                if(bodyPart.isMimeType("text/plain"))
+                {
+                    return bodyPart.getContent().toString();
+                }
+            }
+
+        }
+
+        return "no content found";
     }
 }

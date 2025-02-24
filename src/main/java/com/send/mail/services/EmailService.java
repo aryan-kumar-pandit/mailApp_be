@@ -1,7 +1,10 @@
 package com.send.mail.services;
 
+import com.send.mail.helper.Message;
+
 import java.io.File;
 import java.io.InputStream;
+import java.util.List;
 
 public interface EmailService {
 
@@ -20,6 +23,8 @@ public interface EmailService {
 
     //send email with input stream
     void sendEmailWithFile(String to, String subject, String message, InputStream is);
+
+    List<Message> getInboxMessages();
 
 
 
