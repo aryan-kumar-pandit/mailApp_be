@@ -13,6 +13,10 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 @Service
 public class EmailServiceImpl implements EmailService {
@@ -84,6 +88,31 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(mimeMessage);
             logger.info("mail sent with attachment");
         } catch (MessagingException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    @Override
+    public void sendEmailWithFile(String to, String subject, String message, InputStream is) {
+        MimeMessage mimeMessage = mailSender.createMimeMessage();
+
+        try {
+            MimeMessageHelper messageHelper = new MimeMessageHelper(mimeMessage,true);
+            messageHelper.setFrom(mailFrom);
+            messageHelper.setTo(to);
+            messageHelper.setText(message,true);
+            messageHelper.setSubject(subject);
+            File file=new File("src/main/resources/email/test.png");
+            Files.copy(is,file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            FileSystemResource fileSystemResource = new FileSystemResource(file);
+            messageHelper.addAttachment(fileSystemResource.getFilename(), file);
+
+            mailSender.send(mimeMessage);
+            logger.info("mail sent with attachment");
+        } catch (MessagingException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
 

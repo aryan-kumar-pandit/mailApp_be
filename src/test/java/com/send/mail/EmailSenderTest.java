@@ -6,6 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 
 @SpringBootTest
 public class EmailSenderTest {
@@ -40,6 +43,13 @@ public class EmailSenderTest {
     {
         File f=new File("/Users/apple/IdeaProjects/mailApp_be/src/main/resources/static/about.html");
         emailService.sendEmailWithFile("kumarryan68@gmail.com","email sent with attachment","Hi aryan ",f);
+    }
+
+    @Test
+    void sendEmailWithFileTestWithStream() throws FileNotFoundException {
+        File f=new File("/Users/apple/IdeaProjects/mailApp_be/src/main/resources/static/about.html");
+        InputStream is=new FileInputStream(f);
+        emailService.sendEmailWithFile("kumarryan68@gmail.com","email sent with attachment","Hi aryan ",is);
     }
 
 
